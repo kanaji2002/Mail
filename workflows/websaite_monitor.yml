@@ -104,7 +104,7 @@ jobs:
                         "Authorization": f"token {github_token}",
                         "Accept": "application/vnd.github.v3+json"
                     },
-                    data=json.dumps(issue_data)
+                    data=json.dumps(issue_data))
                 
                 if response.status_code == 201:
                     print("Issueを作成しました")
