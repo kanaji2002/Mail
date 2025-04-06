@@ -1,0 +1,150 @@
+name: Website Change Monitor
+
+on:
+  schedule:
+    # 毎時0分に実行
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install selenium beautifulsoup4 requests
+        
+    - name: Set up Chrome
+      uses: browser-actions/setup-chrome@v1
+      
+    - name: Run website monitor
+      env:
+        TARGET_URL: ${{ secrets.TARGET_URL }}
+        LOGIN_USERNAME: ${{ secrets.LOGIN_USERNAME }}
+        LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python - <<EOF
+        import os
+        from selenium import webdriver
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.chrome.options import Options
+        from bs4 import BeautifulSoup
+        import hashlib
+        import requests
+        import json
+        
+        # 環境変数から設定を読み込む
+        target_url = os.getenv('TARGET_URL')
+        username = os.getenv('LOGIN_USERNAME')
+        password = os.getenv('LOGIN_PASSWORD')
+        github_token = os.getenv('GITHUB_TOKEN')
+        repo = os.getenv('GITHUB_REPOSITORY')  # 自動的に設定される
+        
+        # Chromeオプション設定
+        options = Options()
+        options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        
+        # ウェブドライバー初期化
+        driver = webdriver.Chrome(options=options)
+        
+        try:
+            # 対象サイトにアクセス
+            driver.get(target_url)
+            
+            # ログイン処理（サイトに合わせて修正が必要）
+            # 例: ユーザー名とパスワードフィールドに値を入力
+            driver.find_element(By.ID, 'username').send_keys(username)
+            driver.find_element(By.ID, 'password').send_keys(password)
+            driver.find_element(By.ID, 'login-button').click()
+            
+            # ページが読み込まれるのを待つ
+            driver.implicitly_wait(10)
+            
+            # 現在のページ内容を取得
+            current_content = driver.page_source
+            current_hash = hashlib.md5(current_content.encode()).hexdigest()
+            
+            # 前回のハッシュ値を読み込む
+            try:
+                with open('previous_hash.txt', 'r') as f:
+                    previous_hash = f.read().strip()
+            except FileNotFoundError:
+                previous_hash = ""
+                
+            # 変更を検出
+            if current_hash != previous_hash:
+                print("変更を検出しました")
+                
+                # GitHub Issueを作成
+                soup = BeautifulSoup(current_content, 'html.parser')
+                title = f"Website Change Detected: {soup.title.string if soup.title else 'No Title'}"
+                
+                issue_data = {
+                    "title": title,
+                    "body": f"変更が検出されました\n\n対象URL: {target_url}\n\n変更内容を確認してください",
+                    "labels": ["monitoring", "change-detected"]
+                }
+                
+                response = requests.post(
+                    f"https://api.github.com/repos/{repo}/issues",
+                    headers={
+                        "Authorization": f"token {github_token}",
+                        "Accept": "application/vnd.github.v3+json"
+                    },
+                    data=json.dumps(issue_data)
+                
+                if response.status_code == 201:
+                    print("Issueを作成しました")
+                else:
+                    print(f"Issue作成に失敗しました: {response.text}")
+                
+                # 新しいハッシュ値を保存
+                with open('previous_hash.txt', 'w') as f:
+                    f.write(current_hash)
+            else:
+                print("変更は検出されませんでした")
+                
+        except Exception as e:
+            print(f"エラーが発生しました: {str(e)}")
+            
+            # エラー通知用Issueを作成
+            error_issue = {
+                "title": "Website Monitor Error",
+                "body": f"監視スクリプトでエラーが発生しました\n\nエラー内容: {str(e)}",
+                "labels": ["monitoring", "error"]
+            }
+            
+            requests.post(
+                f"https://api.github.com/repos/{repo}/issues",
+                headers={
+                    "Authorization": f"token {github_token}",
+                    "Accept": "application/vnd.github.v3+json"
+                },
+                data=json.dumps(error_issue))
+            
+        finally:
+            driver.quit()
+        EOF
+        
+    - name: Commit changes if hash updated
+      run: |
+        if [ -f previous_hash.txt ]; then
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add previous_hash.txt
+          git commit -m "Update website hash" || echo "No changes to commit"
+          git push
+        fi
