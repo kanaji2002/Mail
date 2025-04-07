@@ -31,6 +31,7 @@ try:
 
     # Webページを開く
     driver.get(target_url)
+    time.sleep(3)  # ページの描画が遅いとき用に3秒待つ
     print("[DEBUG] ページ先頭HTML：")
     print(driver.page_source[:1000])
 
