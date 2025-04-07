@@ -31,6 +31,9 @@ try:
 
     # Webページを開く
     driver.get(target_url)
+    print("[DEBUG] ページ先頭HTML：")
+    print(driver.page_source[:1000])
+
     
     # [NEW] ページタイトルに "ログイン" などが含まれるまで明示的に待つ（最大20秒）
     WebDriverWait(driver, 20).until(
