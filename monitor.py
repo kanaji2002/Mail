@@ -81,9 +81,8 @@ try:
 except Exception as e:
     print(f"エラーが発生しました: {str(e)}")
     import traceback
-
-    traceback.print_exc()  
-    print(trace)
+    trace = traceback.format_exc()
+    print(trace)  # ログには出力
 
     error_issue = {
         "title": "Website Monitor Error",
