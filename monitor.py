@@ -30,7 +30,7 @@ try:
     driver.get(target_url)
 
     # ログイン処理
-    wait = WebDriverWait(driver, 10)
+    wait = WebDriverWait(driver, 20)
     wait.until(EC.presence_of_element_located((By.ID, "rcmloginuser"))).send_keys(username)
     driver.find_element(By.ID, "rcmloginpwd").send_keys(password)
     driver.find_element(By.ID, "rcmloginsubmit").click()
