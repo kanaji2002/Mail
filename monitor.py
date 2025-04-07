@@ -24,6 +24,7 @@ options.add_argument('--disable-dev-shm-usage')
 
 # WebDriver初期化
 driver = webdriver.Chrome(options=options)
+assert target_url and username and password and github_token, "環境変数が不足しています"
 
 try:
     driver.get(target_url)
@@ -49,7 +50,9 @@ try:
     if current_hash != previous_hash:
         print("変更を検出しました")
         soup = BeautifulSoup(current_content, "html.parser")
-        title = f"Website Change Detected: {soup.title.string if soup.title else 'No Title'}"
+        title_text = soup.title.string if soup.title and soup.title.string else "No Title"
+        title = f"Website Change Detected: {title_text}"
+
 
         issue_data = {
             "title": title,
