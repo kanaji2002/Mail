@@ -24,9 +24,9 @@ try:
     driver.get(target_url)
 
     # ログイン処理（必要に応じて変更）
-    driver.find_element(By.ID, 'username').send_keys(username)
-    driver.find_element(By.ID, 'password').send_keys(password)
-    driver.find_element(By.ID, 'login-button').click()
+    driver.find_element(By.ID, 'rcmloginuser').send_keys(username)
+    driver.find_element(By.ID, 'rcmloginpwd').send_keys(password)
+    driver.find_element(By.ID, 'rcmloginsubmit').click()
 
     driver.implicitly_wait(10)
     current_content = driver.page_source
