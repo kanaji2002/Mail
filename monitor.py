@@ -2,46 +2,53 @@ import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import hashlib
 import requests
 import json
 
+# 環境変数から設定を読み込む
 target_url = os.getenv('TARGET_URL')
 username = os.getenv('LOGIN_USERNAME')
 password = os.getenv('LOGIN_PASSWORD')
 github_token = os.getenv('GITHUB_TOKEN')
-repo = os.getenv('GITHUB_REPOSITORY')
+repo = os.getenv('GITHUB_REPOSITORY')  # GitHub Actionsが自動で設定
 
+# Chromeオプション設定
 options = Options()
 options.add_argument('--headless')
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 
+# WebDriver初期化
 driver = webdriver.Chrome(options=options)
 
 try:
     driver.get(target_url)
 
-    # ログイン処理（必要に応じて変更）
-    driver.find_element(By.ID, 'rcmloginuser').send_keys(username)
-    driver.find_element(By.ID, 'rcmloginpwd').send_keys(password)
-    driver.find_element(By.ID, 'rcmloginsubmit').click()
+    # ログイン処理（セレクターはサイトに合わせて修正済み）
+    wait = WebDriverWait(driver, 10)
+    wait.until(EC.presence_of_element_located((By.ID, "rcmloginuser"))).send_keys(username)
+    driver.find_element(By.ID, "rcmloginpwd").send_keys(password)
+    driver.find_element(By.ID, "rcmloginsubmit").click()
 
+    # ページ内容を取得
     driver.implicitly_wait(10)
     current_content = driver.page_source
     current_hash = hashlib.md5(current_content.encode()).hexdigest()
 
-    # ハッシュファイルの読み取り
+    # ハッシュ読み込み
     hash_file = "previous_hash.txt"
     previous_hash = ""
     if os.path.exists(hash_file):
-        with open(hash_file, 'r') as f:
+        with open(hash_file, "r") as f:
             previous_hash = f.read().strip()
 
     if current_hash != previous_hash:
         print("変更を検出しました")
-        soup = BeautifulSoup(current_content, 'html.parser')
+        soup = BeautifulSoup(current_content, "html.parser")
         title = f"Website Change Detected: {soup.title.string if soup.title else 'No Title'}"
 
         issue_data = {
@@ -63,7 +70,7 @@ try:
         else:
             print(f"Issue作成に失敗しました: {response.text}")
 
-        with open(hash_file, 'w') as f:
+        with open(hash_file, "w") as f:
             f.write(current_hash)
     else:
         print("変更は検出されませんでした")
