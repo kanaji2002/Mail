@@ -9,6 +9,7 @@ import hashlib
 import requests
 import json
 import traceback
+import time
 
 # 環境変数から設定を読み込む
 target_url = os.getenv('TARGET_URL')
