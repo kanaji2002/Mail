@@ -27,13 +27,21 @@ options.add_argument('--disable-dev-shm-usage')
 driver = webdriver.Chrome(options=options)
 
 try:
-    driver.get(target_url)
 
-    # ログイン処理
-    wait = WebDriverWait(driver, 20)
-    wait.until(EC.presence_of_element_located((By.ID, "rcmloginuser"))).send_keys(username)
+
+    # Webページを開く
+    driver.get(target_url)
+    
+    # [NEW] ページタイトルに "ログイン" などが含まれるまで明示的に待つ（最大20秒）
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.ID, "rcmloginuser"))
+    )
+    
+    # [ログイン入力]
+    driver.find_element(By.ID, "rcmloginuser").send_keys(username)
     driver.find_element(By.ID, "rcmloginpwd").send_keys(password)
     driver.find_element(By.ID, "rcmloginsubmit").click()
+
 
     # ページ内容を取得
     driver.implicitly_wait(10)
