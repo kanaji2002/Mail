@@ -1,1 +1,2 @@
-# NAIST_WebMail
+# MailServer
+（しっぱい）
